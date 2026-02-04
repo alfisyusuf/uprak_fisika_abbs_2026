@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ujian Praktikum Fisika</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Quicksand', sans-serif; }
+        .loading-overlay { background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 pb-24">
+
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-4">
+        <div class="w-full max-w-sm">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-teal-600">Fisika Asyik ⚛️</h1>
+                <p class="text-gray-500">Silakan login untuk memulai ujian</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <input type="number" id="nis" placeholder="NIS" class="w-full p-4 rounded-xl bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition" required>
+                <input type="password" id="password" placeholder="Password" class="w-full p-4 rounded-xl bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition" required>
+                <button type="submit" class="w-full bg-teal-600 text-white font-bold p-4 rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-200">MASUK</button>
+            </form>
+            <div id="login-msg" class="mt-4 text-center text-sm text-red-500 hidden"></div>
+        </div>
+    </div>
+
+    <div id="app-screen" class="hidden max-w-2xl mx-auto p-4">
+        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-4 border-teal-500">
+            <div>
+                <h2 id="disp-name" class="font-bold text-lg">Siswa</h2>
+                <p id="disp-nis" class="text-xs text-gray-500">NIS</p>
+            </div>
+            <span id="disp-topic" class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1 rounded">TOPIK</span>
+        </div>
+
+        <form id="exam-form" class="space-y-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <h3 class="font-bold text-teal-600 mb-3">📝 Pendahuluan</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-bold uppercase text-gray-400">Tujuan Percobaan</label>
+                        <textarea name="tujuan" rows="2" class="w-full mt-1 p-3 bg-slate-50 rounded-lg border focus:ring-1 focus:ring-teal-500 outline-none text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold uppercase text-gray-400">Landasan Teori</label>
+                        <textarea name="teori" rows="3" class="w-full mt-1 p-3 bg-slate-50 rounded-lg border focus:ring-1 focus:ring-teal-500 outline-none text-sm" placeholder="Tuliskan persamaan/rumus di sini..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <div class="flex justify-between mb-2">
+                    <h3 class="font-bold text-teal-600">🛠️ Alat & Bahan</h3>
+                    <button type="button" onclick="addTool()" class="text-xs bg-teal-50 text-teal-600 px-3 py-1 rounded-full font-bold">+ Tambah</button>
+                </div>
+                <div id="tools-list" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm overflow-hidden">
+                <h3 class="font-bold text-teal-600 mb-3">📊 Data Pengamatan</h3>
+                
+                <div id="pre-table-hooke" class="hidden mb-4 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-gray-500">Gravitasi (m/s²)</label>
+                        <input type="text" name="gravitasi_ref" value="9.8" class="w-full p-2 bg-slate-50 border rounded text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500">Panjang Awal (m)</label>
+                        <input type="text" inputmode="decimal" name="panjang_awal" class="w-full p-2 bg-slate-50 border rounded text-center" placeholder="0.0">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                            <tr id="table-head"></tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4 bg-yellow-50 p-3 rounded-lg flex items-center justify-between">
+                    <span id="avg-label" class="text-xs font-bold text-yellow-800 uppercase">Rata-rata</span>
+                    <input type="text" inputmode="decimal" name="rata_rata" class="w-24 p-2 bg-white border border-yellow-200 rounded text-center font-bold" placeholder="0.0">
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <h3 class="font-bold text-teal-600 mb-3">🧠 Analisis Data</h3>
+                
+                <div class="grid grid-cols-1 gap-3 mb-4">
+                    <input type="text" name="var_bebas" placeholder="Variabel Bebas" class="p-3 bg-slate-50 rounded-lg border text-sm">
+                    <input type="text" name="var_terikat" placeholder="Variabel Terikat" class="p-3 bg-slate-50 rounded-lg border text-sm">
+                    <input type="text" name="var_kontrol" placeholder="Variabel Kontrol" class="p-3 bg-slate-50 rounded-lg border text-sm">
+                </div>
+
+                <div id="questions-list" class="space-y-4"></div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm">
+                <h3 class="font-bold text-teal-600 mb-3">🏁 Kesimpulan</h3>
+                <textarea name="kesimpulan" rows="4" class="w-full p-3 bg-slate-50 rounded-lg border focus:ring-1 focus:ring-teal-500 outline-none text-sm"></textarea>
+            </div>
+        </form>
+    </div>
+
+    <div id="fab-container" class="hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur border-t flex gap-3 z-40">
+        <button onclick="saveDraft()" class="flex-1 py-3 rounded-xl border border-teal-500 text-teal-600 font-bold text-sm">💾 Simpan Draft</button>
+        <button onclick="submitExam()" class="flex-1 py-3 rounded-xl bg-teal-600 text-white font-bold text-sm shadow-lg shadow-teal-500/30">🚀 Kumpulkan</button>
+    </div>
+
+    <div id="loading" class="hidden fixed inset-0 z-[60] loading-overlay flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mb-4"></div>
+        <p class="text-teal-800 font-bold" id="loading-text">Memproses...</p>
+    </div>
+
+    <script>
+        // --- KONFIGURASI PENTING ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzPH6xnPBt3Y8FOab6w23bq3qp8BRlP1jzzJ_nFNf4H4XjdqQOQbxE9inBqHnsilKfy/exec
+'; 
+
+        // --- DATA SOAL ---
+        const CONFIG = {
+            hooke: {
+                headers: ['No', 'Massa (kg)', 'Gaya (N)', 'P. Akhir (m)', '∆x (m)', 'k (N/m)'],
+                cols: 6,
+                avgLabel: 'Rata-rata Konstanta Pegas (N/m)',
+                questions: [
+                    "Bagaimana hubungan antara gaya dan pertambahan panjang pegas?",
+                    "Apa yang terjadi jika pegas diberikan beban melebihi batas elastisitas?",
+                    "Mengapa penting melakukan percobaan dengan beberapa nilai beban?",
+                    "Soal: k=200 N/m, F=10 N. Hitung ∆x!",
+                    "Soal: Jika k semakin besar, bagaimana sifat elastisitasnya?"
+                ]
+            },
+            pendulum: {
+                headers: ['No', 'Panjang Tali (m)', 't 10 Osilasi (s)', 'Periode (s)', 'g (m/s²)'],
+                cols: 5,
+                avgLabel: 'Rata-rata Gravitasi (m/s²)',
+                questions: [
+                    "Bagaimana hubungan panjang tali dan periode osilasi?",
+                    "Apa yang terjadi jika simpangan sudut diperbesar?",
+                    "Mengapa harus mengambil rata-rata dari beberapa pengukuran waktu?",
+                    "Soal: L=1 m, T=2 s. Hitung percepatan gravitasi!",
+                    "Bandingkan hasil g dengan 9.81 m/s². Jelaskan sumber kesalahan."
+                ]
+            }
+        };
+
+        let currentTopic = '';
+        let studentData = {};
+
+        // --- LOGIN LOGIC ---
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            toggleLoading(true, 'Sedang Login...');
+            
+            const nis = document.getElementById('nis').value;
+            const pass = document.getElementById('password').value;
+
+            try {
+                // Gunakan mode 'no-cors' untuk development sederhana, tapi untuk baca response butuh fetch normal
+                // Kita gunakan trick standard POST ke GAS
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', nis: nis, password: pass })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    studentData = { nis: nis, nama: result.nama, kelas: result.kelas };
+                    setupExam(result.topik);
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                alert("Gagal koneksi: " + err);
+            }
+            toggleLoading(false);
+        });
+
+        function setupExam(topic) {
+            currentTopic = topic;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('fab-container').classList.remove('hidden');
+            document.getElementById('fab-container').classList.add('flex');
+
+            // Set Info Siswa
+            document.getElementById('disp-name').innerText = studentData.nama;
+            document.getElementById('disp-nis').innerText = studentData.nis;
+            document.getElementById('disp-topic').innerText = (topic === 'hooke') ? 'HUKUM HOOKE' : 'BANDUL SEDERHANA';
+
+            // Load Config
+            const conf = CONFIG[topic];
+            
+            // 1. Setup Tabel Header
+            const thead = document.getElementById('table-head');
+            thead.innerHTML = conf.headers.map(h => `<th class="px-4 py-3 border">${h}</th>`).join('');
+
+            // 2. Setup Tabel Body (5 baris)
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            for(let i=1; i<=5; i++) {
+                let row = `<tr><td class="p-2 border text-center font-bold bg-gray-50">${i}</td>`;
+                for(let c=0; c < conf.cols-1; c++) { // -1 karena kolom No sudah ada
+                    row += `<td class="border p-0"><input type="text" inputmode="decimal" class="w-full p-2 text-center outline-none focus:bg-teal-50" oninput="fixDec(this)"></td>`;
+                }
+                row += `</tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            }
+
+            // 3. Setup Questions
+            document.getElementById('questions-list').innerHTML = conf.questions.map((q, i) => `
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">${i+1}. ${q}</label>
+                    <textarea class="w-full p-3 bg-slate-50 rounded-lg border text-sm focus:ring-1 focus:ring-teal-500"></textarea>
+                </div>
+            `).join('');
+
+            // 4. Setup Rata-rata & Input Khusus
+            document.getElementById('avg-label').innerText = conf.avgLabel;
+            if(topic === 'hooke') document.getElementById('pre-table-hooke').classList.remove('hidden');
+
+            // Default Alat
+            addTool('Statif & Klem');
+            addTool('Penggaris');
+            
+            // Cek Draft Lokal
+            loadDraft();
+        }
+
+        // --- UTILITIES ---
+        function addTool(val = '') {
+            const div = document.createElement('div');
+            div.className = 'flex gap-2';
+            div.innerHTML = `<input type="text" value="${val}" class="tool-input flex-1 p-2 bg-slate-50 border rounded text-sm"><button onclick="this.parentElement.remove()" class="text-red-400 font-bold px-2">x</button>`;
+            document.getElementById('tools-list').appendChild(div);
+        }
+
+        function fixDec(el) {
+            el.value = el.value.replace(/,/g, '.'); // Auto ganti koma jadi titik
+        }
+
+        function toggleLoading(show, msg) {
+            const el = document.getElementById('loading');
+            if(show) { el.classList.remove('hidden'); document.getElementById('loading-text').innerText = msg; }
+            else { el.classList.add('hidden'); }
+        }
+
+        function getFormData() {
+            // Collect Table Data
+            const rows = [];
+            document.querySelectorAll('#table-body tr').forEach(tr => {
+                const cells = Array.from(tr.querySelectorAll('input')).map(i => i.value);
+                rows.push(cells);
+            });
+
+            // Collect Answers
+            const answers = Array.from(document.querySelectorAll('#questions-list textarea')).map(i => i.value);
+            
+            // Collect Tools
+            const tools = Array.from(document.querySelectorAll('.tool-input')).map(i => i.value);
+
+            return {
+                tujuan: document.querySelector('[name="tujuan"]').value,
+                teori: document.querySelector('[name="teori"]').value,
+                tools: tools,
+                extra: {
+                    gravitasi_ref: document.querySelector('[name="gravitasi_ref"]')?.value,
+                    panjang_awal: document.querySelector('[name="panjang_awal"]')?.value,
+                    rata_rata: document.querySelector('[name="rata_rata"]').value
+                },
+                table: rows,
+                analisis: {
+                    bebas: document.querySelector('[name="var_bebas"]').value,
+                    terikat: document.querySelector('[name="var_terikat"]').value,
+                    kontrol: document.querySelector('[name="var_kontrol"]').value,
+                    jawaban: answers
+                },
+                kesimpulan: document.querySelector('[name="kesimpulan"]').value
+            };
+        }
+
+        // --- SAVE & UPLOAD ---
+        function saveDraft() {
+            const data = getFormData();
+            const storageData = { topic: currentTopic, data: data, student: studentData };
+            localStorage.setItem('uprak_fisika_draft', JSON.stringify(storageData));
+            alert("Draft tersimpan di HP ini.");
+        }
+
+        function loadDraft() {
+            const raw = localStorage.getItem('uprak_fisika_draft');
+            if(!raw) return;
+            const saved = JSON.parse(raw);
+            if(saved.student.nis !== studentData.nis || saved.topic !== currentTopic) return;
+            
+            // Restore (Sederhana)
+            const d = saved.data;
+            document.querySelector('[name="tujuan"]').value = d.tujuan;
+            document.querySelector('[name="teori"]').value = d.teori;
+            document.querySelector('[name="kesimpulan"]').value = d.kesimpulan;
+            // (Fitur restore lengkap tabel bisa ditambahkan nanti jika perlu)
+        }
+
+        async function submitExam() {
+            if(!confirm("Yakin ingin mengumpulkan? Data tidak bisa diubah lagi.")) return;
+            toggleLoading(true, "Mengirim ke Server...");
+            
+            const payload = getFormData();
+            const body = {
+                action: 'upload',
+                nis: studentData.nis,
+                nama: studentData.nama,
+                topic: currentTopic,
+                payload: payload
+            };
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(body)
+                });
+                
+                toggleLoading(false);
+                alert("✅ BERHASIL! Data sudah masuk ke Guru.");
+                localStorage.removeItem('uprak_fisika_draft');
+                location.reload();
+            } catch (err) {
+                toggleLoading(false);
+                alert("Gagal kirim: " + err);
+            }
+        }
+    </script>
+</body>
+</html>
