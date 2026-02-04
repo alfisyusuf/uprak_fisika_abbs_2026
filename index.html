@@ -109,8 +109,8 @@
     </div>
 
     <div id="fab-container" class="hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur border-t flex gap-3 z-40">
-        <button onclick="saveDraft()" class="flex-1 py-3 rounded-xl border border-teal-500 text-teal-600 font-bold text-sm">💾 Simpan Draft</button>
-        <button onclick="submitExam()" class="flex-1 py-3 rounded-xl bg-teal-600 text-white font-bold text-sm shadow-lg shadow-teal-500/30">🚀 Kumpulkan</button>
+        <button onclick="saveDraft()" id="btn-save" class="flex-1 py-3 rounded-xl border border-teal-500 text-teal-600 font-bold text-sm hover:bg-teal-50 transition">💾 Simpan Draft</button>
+        <button onclick="submitExam()" class="flex-1 py-3 rounded-xl bg-teal-600 text-white font-bold text-sm shadow-lg shadow-teal-500/30 hover:bg-teal-700 transition">🚀 Kumpulkan</button>
     </div>
 
     <div id="loading" class="hidden fixed inset-0 z-[60] loading-overlay flex flex-col items-center justify-center">
@@ -119,10 +119,12 @@
     </div>
 
     <script>
-        // --- KONFIGURASI PENTING ---
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzPH6xnPBt3Y8FOab6w23bq3qp8BRlP1jzzJ_nFNf4H4XjdqQOQbxE9inBqHnsilKfy/exec'; 
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        // GANTI INI DENGAN URL DEPLOYMENT TERBARU ANDA (YANG 4 ASPEK)
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzavdVE_uISu6T_psR3gBdTxjLIxCI2i3tUl7EohgQCagdUGCKwJQb0TAsiyCWY4n2d/exec'; 
 
-        // --- DATA SOAL ---
         const CONFIG = {
             hooke: {
                 headers: ['No', 'Massa (kg)', 'Gaya (N)', 'P. Akhir (m)', '∆x (m)', 'k (N/m)'],
@@ -153,7 +155,9 @@
         let currentTopic = '';
         let studentData = {};
 
-        // --- LOGIN LOGIC ---
+        // ==========================================
+        // LOGIN SYSTEM
+        // ==========================================
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             toggleLoading(true, 'Sedang Login...');
@@ -162,8 +166,6 @@
             const pass = document.getElementById('password').value;
 
             try {
-                // Gunakan mode 'no-cors' untuk development sederhana, tapi untuk baca response butuh fetch normal
-                // Kita gunakan trick standard POST ke GAS
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'login', nis: nis, password: pass })
@@ -171,13 +173,14 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    studentData = { nis: nis, nama: result.nama, kelas: result.kelas };
+                    // Paksa NIS jadi string untuk konsistensi penyimpanan
+                    studentData = { nis: String(nis), nama: result.nama, kelas: result.kelas };
                     setupExam(result.topik);
                 } else {
                     alert(result.message);
                 }
             } catch (err) {
-                alert("Gagal koneksi: " + err);
+                alert("Gagal koneksi. Periksa internet atau URL Script.");
             }
             toggleLoading(false);
         });
@@ -189,31 +192,28 @@
             document.getElementById('fab-container').classList.remove('hidden');
             document.getElementById('fab-container').classList.add('flex');
 
-            // Set Info Siswa
             document.getElementById('disp-name').innerText = studentData.nama;
             document.getElementById('disp-nis').innerText = studentData.nis;
             document.getElementById('disp-topic').innerText = (topic === 'hooke') ? 'HUKUM HOOKE' : 'BANDUL SEDERHANA';
 
-            // Load Config
             const conf = CONFIG[topic];
             
-            // 1. Setup Tabel Header
-            const thead = document.getElementById('table-head');
-            thead.innerHTML = conf.headers.map(h => `<th class="px-4 py-3 border">${h}</th>`).join('');
+            // Render Table Header
+            document.getElementById('table-head').innerHTML = conf.headers.map(h => `<th class="px-4 py-3 border">${h}</th>`).join('');
 
-            // 2. Setup Tabel Body (5 baris)
+            // Render Table Body
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
             for(let i=1; i<=5; i++) {
                 let row = `<tr><td class="p-2 border text-center font-bold bg-gray-50">${i}</td>`;
-                for(let c=0; c < conf.cols-1; c++) { // -1 karena kolom No sudah ada
+                for(let c=0; c < conf.cols-1; c++) { 
                     row += `<td class="border p-0"><input type="text" inputmode="decimal" class="w-full p-2 text-center outline-none focus:bg-teal-50" oninput="fixDec(this)"></td>`;
                 }
                 row += `</tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             }
 
-            // 3. Setup Questions
+            // Render Questions
             document.getElementById('questions-list').innerHTML = conf.questions.map((q, i) => `
                 <div class="mb-3">
                     <label class="block text-xs font-bold text-gray-600 mb-1">${i+1}. ${q}</label>
@@ -221,28 +221,137 @@
                 </div>
             `).join('');
 
-            // 4. Setup Rata-rata & Input Khusus
             document.getElementById('avg-label').innerText = conf.avgLabel;
             if(topic === 'hooke') document.getElementById('pre-table-hooke').classList.remove('hidden');
 
-            // Default Alat
-            addTool('Statif & Klem');
-            addTool('Penggaris');
-            
-            // Cek Draft Lokal
-            loadDraft();
+            // Coba Load Draft (Akan mengisi alat default jika tidak ada draft)
+            loadDraft(); 
         }
 
-        // --- UTILITIES ---
+        // ==========================================
+        // STORAGE & SAVE LOGIC (UPDATED)
+        // ==========================================
+        function saveDraft() {
+            const btn = document.getElementById('btn-save');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ Menyimpan...";
+            
+            const data = getFormData();
+            const storageData = { 
+                topic: currentTopic, 
+                data: data, 
+                // Simpan NIS sebagai penanda pemilik
+                ownerNIS: studentData.nis 
+            };
+            
+            localStorage.setItem('uprak_fisika_v2', JSON.stringify(storageData));
+            
+            setTimeout(() => {
+                btn.innerText = "✅ Tersimpan!";
+                setTimeout(() => btn.innerText = originalText, 1500);
+            }, 500);
+        }
+
+        function loadDraft() {
+            const raw = localStorage.getItem('uprak_fisika_v2');
+            
+            // Jika tidak ada draft, isi alat default
+            if(!raw) {
+                addTool('Statif & Klem');
+                addTool('Penggaris');
+                return;
+            }
+
+            try {
+                const saved = JSON.parse(raw);
+                
+                // VALIDASI PEMILIK & TOPIK
+                // Jangan load jika beda siswa atau beda topik
+                if (saved.ownerNIS !== studentData.nis || saved.topic !== currentTopic) {
+                    addTool('Statif & Klem');
+                    addTool('Penggaris');
+                    return; 
+                }
+
+                if(!confirm(`Ditemukan data tersimpan untuk ${studentData.nama}. Lanjutkan pengerjaan terakhir?`)) {
+                    // Jika siswa pilih Cancel, reset alat default
+                    addTool('Statif & Klem');
+                    addTool('Penggaris');
+                    return; 
+                }
+
+                // --- RESTORE DATA SECARA LENGKAP ---
+                const d = saved.data;
+
+                // 1. Text Dasar
+                safeVal('[name="tujuan"]', d.tujuan);
+                safeVal('[name="teori"]', d.teori);
+                safeVal('[name="kesimpulan"]', d.kesimpulan);
+
+                // 2. Variabel Analisis
+                if(d.analisis) {
+                    safeVal('[name="var_bebas"]', d.analisis.bebas);
+                    safeVal('[name="var_terikat"]', d.analisis.terikat);
+                    safeVal('[name="var_kontrol"]', d.analisis.kontrol);
+                }
+
+                // 3. Extra Inputs
+                if(d.extra) {
+                    safeVal('[name="gravitasi_ref"]', d.extra.gravitasi_ref);
+                    safeVal('[name="panjang_awal"]', d.extra.panjang_awal);
+                    safeVal('[name="rata_rata"]', d.extra.rata_rata);
+                }
+
+                // 4. Alat & Bahan (Reset list dulu)
+                document.getElementById('tools-list').innerHTML = '';
+                if (d.tools && d.tools.length > 0) {
+                    d.tools.forEach(t => addTool(t));
+                } else {
+                    addTool('Statif & Klem'); // Fallback
+                }
+
+                // 5. Tabel Data (Looping input tabel)
+                const inputs = document.querySelectorAll('#table-body input');
+                if(d.table) {
+                    // Flatten data tabel 2D jadi 1D biar mudah di-map ke inputs
+                    const flatValues = d.table.flat(); 
+                    inputs.forEach((inp, idx) => {
+                        if(flatValues[idx] !== undefined) inp.value = flatValues[idx];
+                    });
+                }
+
+                // 6. Jawaban Pertanyaan
+                const qAreas = document.querySelectorAll('#questions-list textarea');
+                if(d.analisis && d.analisis.jawaban) {
+                    d.analisis.jawaban.forEach((ans, idx) => {
+                        if(qAreas[idx]) qAreas[idx].value = ans;
+                    });
+                }
+
+            } catch (e) {
+                console.error("Gagal load draft:", e);
+                addTool('Statif & Klem'); // Fallback error
+            }
+        }
+
+        // Helper untuk set value aman
+        function safeVal(selector, val) {
+            const el = document.querySelector(selector);
+            if(el && val !== undefined) el.value = val;
+        }
+
+        // ==========================================
+        // UTILITIES & SUBMIT
+        // ==========================================
         function addTool(val = '') {
             const div = document.createElement('div');
             div.className = 'flex gap-2';
-            div.innerHTML = `<input type="text" value="${val}" class="tool-input flex-1 p-2 bg-slate-50 border rounded text-sm"><button onclick="this.parentElement.remove()" class="text-red-400 font-bold px-2">x</button>`;
+            div.innerHTML = `<input type="text" value="${val}" class="tool-input flex-1 p-2 bg-slate-50 border rounded text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold px-2">x</button>`;
             document.getElementById('tools-list').appendChild(div);
         }
 
         function fixDec(el) {
-            el.value = el.value.replace(/,/g, '.'); // Auto ganti koma jadi titik
+            el.value = el.value.replace(/,/g, '.');
         }
 
         function toggleLoading(show, msg) {
@@ -252,23 +361,15 @@
         }
 
         function getFormData() {
-            // Collect Table Data
             const rows = [];
             document.querySelectorAll('#table-body tr').forEach(tr => {
-                const cells = Array.from(tr.querySelectorAll('input')).map(i => i.value);
-                rows.push(cells);
+                rows.push(Array.from(tr.querySelectorAll('input')).map(i => i.value));
             });
-
-            // Collect Answers
-            const answers = Array.from(document.querySelectorAll('#questions-list textarea')).map(i => i.value);
             
-            // Collect Tools
-            const tools = Array.from(document.querySelectorAll('.tool-input')).map(i => i.value);
-
             return {
                 tujuan: document.querySelector('[name="tujuan"]').value,
                 teori: document.querySelector('[name="teori"]').value,
-                tools: tools,
+                tools: Array.from(document.querySelectorAll('.tool-input')).map(i => i.value),
                 extra: {
                     gravitasi_ref: document.querySelector('[name="gravitasi_ref"]')?.value,
                     panjang_awal: document.querySelector('[name="panjang_awal"]')?.value,
@@ -279,56 +380,33 @@
                     bebas: document.querySelector('[name="var_bebas"]').value,
                     terikat: document.querySelector('[name="var_terikat"]').value,
                     kontrol: document.querySelector('[name="var_kontrol"]').value,
-                    jawaban: answers
+                    jawaban: Array.from(document.querySelectorAll('#questions-list textarea')).map(i => i.value)
                 },
                 kesimpulan: document.querySelector('[name="kesimpulan"]').value
             };
         }
 
-        // --- SAVE & UPLOAD ---
-        function saveDraft() {
-            const data = getFormData();
-            const storageData = { topic: currentTopic, data: data, student: studentData };
-            localStorage.setItem('uprak_fisika_draft', JSON.stringify(storageData));
-            alert("Draft tersimpan di HP ini.");
-        }
-
-        function loadDraft() {
-            const raw = localStorage.getItem('uprak_fisika_draft');
-            if(!raw) return;
-            const saved = JSON.parse(raw);
-            if(saved.student.nis !== studentData.nis || saved.topic !== currentTopic) return;
-            
-            // Restore (Sederhana)
-            const d = saved.data;
-            document.querySelector('[name="tujuan"]').value = d.tujuan;
-            document.querySelector('[name="teori"]').value = d.teori;
-            document.querySelector('[name="kesimpulan"]').value = d.kesimpulan;
-            // (Fitur restore lengkap tabel bisa ditambahkan nanti jika perlu)
-        }
-
         async function submitExam() {
-            if(!confirm("Yakin ingin mengumpulkan? Data tidak bisa diubah lagi.")) return;
+            if(!confirm("Yakin ingin mengumpulkan? Pastikan semua data sudah terisi.")) return;
             toggleLoading(true, "Mengirim ke Server...");
             
             const payload = getFormData();
-            const body = {
-                action: 'upload',
-                nis: studentData.nis,
-                nama: studentData.nama,
-                topic: currentTopic,
-                payload: payload
-            };
-
+            
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify(body)
+                    body: JSON.stringify({
+                        action: 'upload',
+                        nis: studentData.nis,
+                        nama: studentData.nama,
+                        topic: currentTopic,
+                        payload: payload
+                    })
                 });
                 
                 toggleLoading(false);
-                alert("✅ BERHASIL! Data sudah masuk ke Guru.");
-                localStorage.removeItem('uprak_fisika_draft');
+                alert("✅ BERHASIL! Data ujian Anda telah diterima Guru.");
+                localStorage.removeItem('uprak_fisika_v2'); // Bersihkan draft setelah sukses
                 location.reload();
             } catch (err) {
                 toggleLoading(false);
