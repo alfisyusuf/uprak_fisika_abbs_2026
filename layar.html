@@ -79,6 +79,12 @@
         const EXAM_URL = "https://uprak.abbs.click";
         const DURATION_MINUTES = 40;
         
+        // --- AUDIO CDN (URL STABIL) ---
+        // Peringatan 5 Menit (Bunyi Ting)
+        const SOUND_WARNING = new Audio("https://github.com/maykbrito/libs/blob/main/sounds/notification.mp3?raw=true");
+        // Waktu Habis (Bunyi Alarm)
+        const SOUND_FINISH = new Audio("https://github.com/maykbrito/libs/blob/main/sounds/alert.mp3?raw=true");
+
         let totalSeconds = DURATION_MINUTES * 60;
         let timeLeft = totalSeconds;
         let timerId = null;
@@ -108,7 +114,7 @@
             const percent = (timeLeft / totalSeconds) * 100;
             progressBar.style.width = `${percent}%`;
 
-            // Logic Warna
+            // Logic Warna & Status
             if (timeLeft <= 0) {
                 // WAKTU HABIS
                 display.className = "font-mono-digital text-[12rem] leading-none font-bold tracking-tighter tabular-nums animate-urgent text-red-600";
@@ -139,13 +145,20 @@
         function startTimer() {
             if (isRunning) return;
             if (timeLeft <= 0) return;
-            initAudio();
+            
             isRunning = true;
             timerId = setInterval(() => {
                 timeLeft--;
                 updateDisplay();
-                if (timeLeft === 300) playAlertSound('warning');
-                if (timeLeft === 0) { playAlertSound('finish'); stopTimer(); }
+
+                // AUDIO TRIGGER
+                if (timeLeft === 300) { // Pas sisa 5 menit
+                    SOUND_WARNING.play().catch(e => console.log("Audio error:", e));
+                }
+                if (timeLeft === 0) { // Pas habis
+                    SOUND_FINISH.play().catch(e => console.log("Audio error:", e));
+                    stopTimer();
+                }
             }, 1000);
             updateDisplay();
         }
@@ -164,6 +177,10 @@
 
         function resetTimer() {
             stopTimer();
+            // Stop suara jika sedang bunyi
+            SOUND_FINISH.pause(); 
+            SOUND_FINISH.currentTime = 0;
+            
             timeLeft = totalSeconds;
             bodyBg.classList.remove('animate-bg-urgent');
             statusBadge.innerText = "MENUNGGU MULAI";
@@ -171,43 +188,18 @@
             updateDisplay();
         }
 
-        // --- 3. AUDIO SYNTHESIS (FISIKA!) ---
-        let audioCtx;
-        function initAudio() {
-            if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
-            }
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-        }
-
-        function playTone(freq, type, duration) {
-            initAudio();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.value = freq;
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        function playAlertSound(type) {
-            if (type === 'warning') {
-                // Ting-Ting (Nada Tinggi)
-                playTone(880, 'sine', 0.6); // A5
-                setTimeout(() => playTone(880, 'sine', 0.6), 500);
-            } else if (type === 'finish') {
-                // Buzzer (Nada Rendah)
-                playTone(150, 'sawtooth', 3.0);
-            }
-        }
-
         function testSound() {
-            playAlertSound('warning');
+            // Tes bunyi ting
+            SOUND_WARNING.play();
+            // Tes bunyi alarm setelah 1 detik
+            setTimeout(() => {
+                SOUND_FINISH.play();
+                // Matikan alarm setelah 2 detik tes
+                setTimeout(() => {
+                    SOUND_FINISH.pause();
+                    SOUND_FINISH.currentTime = 0;
+                }, 2000);
+            }, 1000);
         }
 
         updateDisplay();
