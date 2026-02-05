@@ -51,8 +51,7 @@
     <div id="grading-modal" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4">
         <div class="bg-white w-full max-w-6xl h-[95vh] rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden animate-fade-in">
             
-            <div class="w-full md:w-3/4 p-6 overflow-y-auto bg-slate-50 border-r" id="report-content">
-                </div>
+            <div class="w-full md:w-3/4 p-6 overflow-y-auto bg-slate-50 border-r" id="report-content"></div>
 
             <div class="w-full md:w-1/4 p-6 flex flex-col bg-white border-l h-full">
                 <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -100,7 +99,8 @@
 
     <script>
         // --- KONFIGURASI ---
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxH7I_95q9NidRY2rhmqTV2RuExiCBbdxBVAeSp7A_Xg_3XrlKlBdjcSuUcBE6YED7q/exec'; // <-- Ganti URL hasil Deploy Ulang
+        // Pastikan URL ini sesuai dengan Deployment terakhir
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxH7I_95q9NidRY2rhmqTV2RuExiCBbdxBVAeSp7A_Xg_3XrlKlBdjcSuUcBE6YED7q/exec'; 
         
         let allData = [];
         let activeIndex = -1;
@@ -198,7 +198,7 @@
                 </div>
             `);
 
-            // Bagian B: Data & Validasi (Logic Fisika)
+            // Bagian B: Data & Validasi
             let tableHtml = (d.topik === 'hooke') ? generateHookeTable(payload.table, payload.extra) : generatePendulumTable(payload.table);
             html += card("📊 Data Pengamatan & Validasi", `
                 ${tableHtml}
@@ -208,22 +208,45 @@
                 </div>
             `);
 
-            // Bagian C: Analisis
+            // Bagian C: Analisis (REVISI: Ditambah Variabel)
+            let analisisContent = '';
+            
+            // 1. Variabel (NEW)
+            if(payload.analisis) {
+                analisisContent += `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div class="bg-white p-2 rounded border border-slate-100">
+                            <span class="text-[10px] font-bold text-teal-500 uppercase tracking-wider block mb-1">Var. Bebas</span>
+                            <p class="font-bold text-sm text-slate-700">${payload.analisis.bebas || '-'}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-100">
+                            <span class="text-[10px] font-bold text-teal-500 uppercase tracking-wider block mb-1">Var. Terikat</span>
+                            <p class="font-bold text-sm text-slate-700">${payload.analisis.terikat || '-'}</p>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-100">
+                            <span class="text-[10px] font-bold text-teal-500 uppercase tracking-wider block mb-1">Var. Kontrol</span>
+                            <p class="font-bold text-sm text-slate-700">${payload.analisis.kontrol || '-'}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. Jawaban Pertanyaan
             if(payload.analisis && payload.analisis.jawaban) {
-                let ans = payload.analisis.jawaban.map((a,i) => `
+                analisisContent += payload.analisis.jawaban.map((a,i) => `
                     <div class="mb-3 last:mb-0">
                         <span class="font-bold text-xs text-teal-600 mb-1 block">Pertanyaan ${i+1}</span>
-                        <p class="text-sm text-slate-700 bg-white p-2 rounded border-l-4 border-teal-100">${a}</p>
+                        <p class="text-sm text-slate-700 bg-white p-3 rounded border-l-4 border-teal-100 shadow-sm">${a}</p>
                     </div>`).join('');
-                html += card("🧠 Analisis Data", ans);
             }
+            html += card("🧠 Analisis Data", analisisContent);
 
             // Bagian D: Kesimpulan
             html += card("🏁 Kesimpulan", `<p class="text-sm text-slate-700 leading-relaxed">${payload.kesimpulan || '-'}</p>`);
 
             container.innerHTML = html;
 
-            // 2. Isi Form dengan Nilai Lama (Jika ada)
+            // Form Nilai
             document.getElementById('grade-1').value = d.a1;
             document.getElementById('grade-2').value = d.a2;
             document.getElementById('grade-3').value = d.a3;
@@ -237,7 +260,7 @@
             document.getElementById('grading-modal').classList.add('hidden');
         }
 
-        // Kirim Nilai ke Server
+        // Submit Grade
         async function submitGrade() {
             const n1 = document.getElementById('grade-1').value;
             const n2 = document.getElementById('grade-2').value;
@@ -245,7 +268,6 @@
             const n4 = document.getElementById('grade-4').value;
             const comm = document.getElementById('grade-comment').value;
 
-            // Validasi sederhana
             if(n1==="" || n2==="" || n3==="" || n4==="") {
                 if(!confirm("Ada nilai yang masih kosong. Yakin ingin menyimpan? (Akan dianggap 0)")) return;
             }
@@ -265,17 +287,16 @@
                 const res = await response.json();
 
                 if(res.status === 'success') {
-                    // Update tampilan lokal agar responsif
                     allData[activeIndex].a1 = n1;
                     allData[activeIndex].a2 = n2;
                     allData[activeIndex].a3 = n3;
                     allData[activeIndex].a4 = n4;
                     allData[activeIndex].komentar = comm;
-                    allData[activeIndex].total = res.total; // Ambil total hitungan server
+                    allData[activeIndex].total = res.total;
                     
                     renderTable();
                     closeModal();
-                    // Toast/Alert Sukses Kecil
+                    
                     const toast = document.createElement('div');
                     toast.className = "fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl font-bold animate-bounce";
                     toast.innerText = "✅ Nilai Berhasil Disimpan!";
@@ -290,7 +311,7 @@
             btn.innerText = "SIMPAN NILAI";
         }
 
-        // --- VALIDASI FISIKA (LOGIC SAMA) ---
+        // Helper Logic Fisika
         function check(val, ref) { if(!val || !ref) return ''; const diff = Math.abs((val-ref)/ref); return diff > 0.05 ? 'text-red-500 font-bold underline decoration-red-300 decoration-2' : 'text-green-600 font-bold'; }
         
         function generateHookeTable(rows, extra) {
