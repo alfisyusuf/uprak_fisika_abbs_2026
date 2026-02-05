@@ -7,20 +7,15 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-notification-sounds@1.0.0/dist/simple-notification-sounds.umd.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-mono-nums { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Smooth Transition untuk Background saat Panic Mode */
         .bg-anim { transition: background-color 0.5s ease, color 0.5s ease; }
-        
-        /* Animasi Kedip Halus */
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .animate-urgent { animation: pulse-red 1s infinite; }
     </style>
 </head>
@@ -34,7 +29,6 @@
                 <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Ujian Praktikum T.A. 2025/2026</p>
             </div>
         </div>
-        
         <div id="status-badge" class="px-5 py-2 rounded-lg bg-white border border-slate-200 shadow-sm font-bold text-slate-500 text-sm tracking-wide">
             MENUNGGU DIMULAI
         </div>
@@ -44,13 +38,10 @@
         
         <div class="col-span-4 flex flex-col items-center justify-center h-full">
             <div class="bg-white p-8 rounded-[2rem] shadow-2xl border border-slate-200 w-full max-w-md text-center transform hover:scale-[1.02] transition duration-500">
-                
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Scan Masuk</p>
-                
                 <div class="bg-white p-1 inline-block">
                     <div id="qrcode" class="opacity-90"></div>
                 </div>
-
                 <div class="mt-8 pt-6 border-t border-slate-100">
                     <p class="text-slate-400 text-xs font-bold mb-1 uppercase">Akses Browser</p>
                     <p class="text-3xl font-extrabold text-teal-700 tracking-tight">uprak.abbs.click</p>
@@ -59,7 +50,6 @@
         </div>
 
         <div class="col-span-8 flex flex-col items-center justify-center h-full relative">
-            
             <h2 id="timer-label" class="text-slate-400 font-bold text-lg uppercase tracking-[0.5em] mb-4">Waktu Pengerjaan</h2>
             
             <div id="timer-display" class="font-mono-nums text-[16vw] leading-none font-bold text-slate-900 tracking-tighter tabular-nums drop-shadow-xl">
@@ -80,10 +70,9 @@
                     <button onclick="pauseTimer()" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold">⏸ Jeda</button>
                     <button onclick="resetTimer()" class="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl font-bold">⏹ Reset</button>
                     <div class="w-px bg-slate-300 my-2"></div>
-                    <button onclick="testSound()" class="px-4 py-2 hover:bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">🔔 Cek Suara</button>
+                    <button onclick="testSound()" class="px-4 py-2 hover:bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">🔊 Cek Suara</button>
                 </div>
             </div>
-
         </div>
     </main>
 
@@ -92,28 +81,21 @@
         const EXAM_URL = "https://uprak.abbs.click";
         const DURATION_MINUTES = 40;
         
-        // --- AUDIO SOUNDS (CDN STABIL) ---
-        // Bunyi notifikasi halus untuk 5 menit
-        const SOUND_WARNING = new Audio("https://cdn.pixabay.com/audio/2022/03/24/audio_777b7f5831.mp3"); 
-        // Bunyi alarm tegas untuk waktu habis
-        const SOUND_FINISH = new Audio("https://cdn.pixabay.com/audio/2021/08/04/audio_0625c153e1.mp3");
-
+        // GLOBAL VARS
         let totalSeconds = DURATION_MINUTES * 60;
         let timeLeft = totalSeconds;
         let timerId = null;
         let isRunning = false;
 
-        // --- 1. QR CODE GENERATOR (HITAM) ---
+        // 1. GENERATE QR CODE (HITAM PEKAT)
         new QRCode(document.getElementById("qrcode"), {
             text: EXAM_URL,
-            width: 250,
-            height: 250,
-            colorDark : "#000000", // Hitam Pekat
-            colorLight : "#ffffff",
+            width: 250, height: 250,
+            colorDark : "#000000", colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
         });
 
-        // --- 2. LOGIC TIMER ---
+        // 2. TIMER LOGIC
         const display = document.getElementById('timer-display');
         const progressBar = document.getElementById('progress-bar');
         const statusBadge = document.getElementById('status-badge');
@@ -128,29 +110,20 @@
             const percent = (timeLeft / totalSeconds) * 100;
             progressBar.style.width = `${percent}%`;
 
-            // --- STATE MANAGEMENT ---
             if (timeLeft <= 0) {
-                // STATE: WAKTU HABIS
                 setPanicMode(true);
                 statusBadge.innerText = "WAKTU HABIS / SELESAI";
                 statusBadge.className = "px-5 py-2 rounded-lg bg-red-600 text-white font-bold text-sm tracking-wide animate-pulse";
-            } 
-            else if (timeLeft <= 300) { // 5 Menit
-                // STATE: PERINGATAN (WARNING)
+            } else if (timeLeft <= 300) { 
                 setPanicMode(false);
-                display.classList.add('text-orange-600');
-                display.classList.remove('text-slate-900');
+                display.classList.add('text-orange-600'); display.classList.remove('text-slate-900');
                 progressBar.className = "h-full bg-orange-500 w-full";
-                
                 statusBadge.innerText = "PERINGATAN: SISA 5 MENIT";
                 statusBadge.className = "px-5 py-2 rounded-lg bg-orange-100 text-orange-700 border border-orange-200 font-bold text-sm tracking-wide animate-pulse";
-            } 
-            else {
-                // STATE: NORMAL
+            } else {
                 setPanicMode(false);
                 display.className = "font-mono-nums text-[16vw] leading-none font-bold text-slate-900 tracking-tighter tabular-nums drop-shadow-xl";
                 progressBar.className = "h-full bg-slate-800 w-full transition-all duration-1000 ease-linear";
-                
                 if(isRunning) {
                     statusBadge.innerText = "UJIAN SEDANG BERLANGSUNG";
                     statusBadge.className = "px-5 py-2 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 font-bold text-sm tracking-wide";
@@ -160,32 +133,38 @@
 
         function setPanicMode(isPanic) {
             if (isPanic) {
-                body.classList.remove('bg-slate-100', 'text-slate-800');
-                body.classList.add('bg-red-600', 'text-white');
+                body.classList.replace('bg-slate-100', 'bg-red-600');
+                body.classList.replace('text-slate-800', 'text-white');
                 display.classList.remove('text-slate-900', 'text-orange-600');
                 display.classList.add('text-white', 'animate-urgent');
                 progressBar.classList.add('bg-white');
                 label.classList.add('text-red-200');
-                label.classList.remove('text-slate-400');
             } else {
-                body.classList.add('bg-slate-100', 'text-slate-800');
-                body.classList.remove('bg-red-600', 'text-white');
+                body.classList.replace('bg-red-600', 'bg-slate-100');
+                body.classList.replace('text-white', 'text-slate-800');
                 display.classList.remove('text-white', 'animate-urgent');
                 label.classList.remove('text-red-200');
-                label.classList.add('text-slate-400');
             }
         }
 
-        // --- 3. CONTROLS ---
+        // 3. SOUND LOGIC (PAKAI LIBRARY BARU)
+        function playWarningSound() {
+            // Suara 'Attention' (Sedang) untuk 5 menit
+            SimpleNotificationSounds.playAttention(); 
+        }
+
+        function playFinishSound() {
+            // Suara 'Alert' (Panjang/SOS) untuk Waktu Habis - Urgent!
+            SimpleNotificationSounds.playAlert('long'); 
+        }
+
         function startTimer() {
             if (isRunning) return;
             if (timeLeft <= 0) return;
             
-            // Hack untuk mengaktifkan audio context di browser
-            SOUND_WARNING.play().then(() => {
-                SOUND_WARNING.pause();
-                SOUND_WARNING.currentTime = 0;
-            }).catch(e => {});
+            // Pancing Audio Context (agar browser mengizinkan suara)
+            // Kita play suara "success" pelan sekali sebagai pancingan
+            SimpleNotificationSounds.playSuccess('short');
 
             isRunning = true;
             statusBadge.innerText = "UJIAN SEDANG BERLANGSUNG";
@@ -195,14 +174,10 @@
                 timeLeft--;
                 updateDisplay();
 
-                // PLAY SOUNDS
-                if (timeLeft === 300) { 
-                    SOUND_WARNING.volume = 1.0;
-                    SOUND_WARNING.play(); 
-                }
+                // TRIGGER SUARA DARI LIBRARY
+                if (timeLeft === 300) playWarningSound(); // 5 Menit
                 if (timeLeft === 0) { 
-                    SOUND_FINISH.volume = 1.0;
-                    SOUND_FINISH.play(); 
+                    playFinishSound(); // Selesai
                     stopTimer(); 
                 }
             }, 1000);
@@ -211,7 +186,7 @@
         function pauseTimer() {
             clearInterval(timerId);
             isRunning = false;
-            statusBadge.innerText = "WAKTU DIJEDA (PAUSED)";
+            statusBadge.innerText = "WAKTU DIJEDA";
             statusBadge.className = "px-5 py-2 rounded-lg bg-yellow-100 text-yellow-800 border border-yellow-200 font-bold text-sm tracking-wide";
         }
 
@@ -222,43 +197,30 @@
 
         function resetTimer() {
             stopTimer();
-            SOUND_FINISH.pause();
-            SOUND_FINISH.currentTime = 0;
             timeLeft = totalSeconds;
-            
             setPanicMode(false);
             display.classList.remove('text-orange-600');
             display.classList.add('text-slate-900');
-            
             statusBadge.innerText = "MENUNGGU DIMULAI";
             statusBadge.className = "px-5 py-2 rounded-lg bg-white border border-slate-200 shadow-sm font-bold text-slate-500 text-sm tracking-wide";
             updateDisplay();
         }
 
         function testSound() {
-            SOUND_WARNING.play();
-            setTimeout(() => {
-                SOUND_FINISH.play();
-                setTimeout(() => {
-                    SOUND_FINISH.pause();
-                    SOUND_FINISH.currentTime = 0;
-                }, 2000);
-            }, 1000);
+            // Demo kedua suara
+            playWarningSound();
+            setTimeout(() => playFinishSound(), 1000);
         }
 
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                if (document.exitFullscreen) document.exitFullscreen();
             }
         }
 
-        // Init
         updateDisplay();
-
     </script>
 </body>
 </html>
