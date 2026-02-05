@@ -123,7 +123,7 @@
         // CONFIGURATION
         // ==========================================
         // GANTI INI DENGAN URL DEPLOYMENT TERBARU ANDA (YANG 4 ASPEK)
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzavdVE_uISu6T_psR3gBdTxjLIxCI2i3tUl7EohgQCagdUGCKwJQb0TAsiyCWY4n2d/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxH7I_95q9NidRY2rhmqTV2RuExiCBbdxBVAeSp7A_Xg_3XrlKlBdjcSuUcBE6YED7q/exec'; 
 
         const CONFIG = {
             hooke: {
@@ -387,13 +387,20 @@
         }
 
         async function submitExam() {
-            if(!confirm("Yakin ingin mengumpulkan? Pastikan semua data sudah terisi.")) return;
+            // --- PESAN PERINGATAN BARU ---
+            const message = "PERHATIAN:\n\n" +
+                            "Apakah Anda yakin ingin mengumpulkan?\n" +
+                            "Jika Anda sebelumnya sudah mengumpulkan, data lama akan DIHAPUS dan DIGANTI dengan yang ini.\n\n" +
+                            "Lanjutkan?";
+
+            if(!confirm(message)) return; // Jika batal, stop.
+
             toggleLoading(true, "Mengirim ke Server...");
             
             const payload = getFormData();
             
             try {
-                await fetch(SCRIPT_URL, {
+                const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'upload',
@@ -404,15 +411,29 @@
                     })
                 });
                 
+                const result = await response.json(); // Baca respon JSON dari server
+
                 toggleLoading(false);
-                alert("✅ BERHASIL! Data ujian Anda telah diterima Guru.");
-                localStorage.removeItem('uprak_fisika_v2'); // Bersihkan draft setelah sukses
-                location.reload();
+                
+                if (result.status === 'success') {
+                    // Pesan sukses sesuai mode (Baru/Update)
+                    if(result.mode === 'update') {
+                        alert("✅ REVISI BERHASIL! Data lama Anda sudah ditimpa dengan data baru ini.");
+                    } else {
+                        alert("✅ BERHASIL! Data ujian Anda telah diterima Guru.");
+                    }
+                    
+                    localStorage.removeItem('uprak_fisika_v2'); // Hapus draft
+                    location.reload(); // Refresh halaman
+                } else {
+                    alert("Gagal menyimpan: " + result.message);
+                }
+
             } catch (err) {
                 toggleLoading(false);
                 alert("Gagal kirim: " + err);
             }
         }
-    </script>
+        </script>
 </body>
 </html>
