@@ -3,75 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Layar Ujian - Lab Fisika</title>
+    <title>Exam Monitor - Physics Lab</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Quicksand', sans-serif; }
-        .font-mono-digital { font-family: 'Share Tech Mono', monospace; }
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono-nums { font-family: 'JetBrains Mono', monospace; }
         
-        /* Animasi Kedip untuk Peringatan */
-        @keyframes blink-red { 50% { color: #dc2626; } }
-        @keyframes blink-bg-red { 50% { background-color: #fee2e2; } }
+        /* Smooth Transition untuk Background saat Panic Mode */
+        .bg-anim { transition: background-color 0.5s ease, color 0.5s ease; }
         
-        .animate-urgent { animation: blink-red 1s infinite; }
-        .animate-bg-urgent { animation: blink-bg-red 1s infinite; }
+        /* Animasi Kedip Halus */
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-urgent { animation: pulse-red 1s infinite; }
     </style>
 </head>
-<body id="body-bg" class="bg-slate-50 text-slate-800 min-h-screen flex flex-col overflow-hidden transition-colors duration-500">
+<body id="main-body" class="bg-slate-100 text-slate-800 min-h-screen flex flex-col overflow-hidden bg-anim select-none">
 
-    <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm">
-        <div class="flex items-center gap-4">
-            <div class="h-12 w-1.5 bg-teal-600 rounded-full"></div>
-            <div>
-                <h1 class="text-2xl font-extrabold tracking-wider text-teal-700">LABORATORIUM FISIKA</h1>
-                <p class="text-xs text-slate-500 tracking-[0.2em] uppercase font-bold">Ujian Praktikum 2026 • SMA ABBS SURAKARTA</p>
+    <div class="w-full px-8 py-6 flex justify-between items-start">
+        <div class="flex flex-col">
+            <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">LABORATORIUM FISIKA</h1>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="h-2 w-2 rounded-full bg-teal-600"></span>
+                <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Ujian Praktikum T.A. 2025/2026</p>
             </div>
         </div>
-        <div id="status-badge" class="px-6 py-2 rounded-full bg-slate-200 text-slate-600 font-bold text-sm border border-slate-300">
-            MENUNGGU MULAI
-        </div>
-    </header>
-
-    <main class="flex-1 flex flex-col md:flex-row items-center justify-center p-8 gap-12">
         
-        <div class="flex flex-col items-center justify-center bg-white p-10 rounded-3xl border border-slate-200 shadow-xl w-full md:w-1/3">
-            <h2 class="text-slate-400 uppercase text-xs font-bold tracking-widest mb-6">SCAN UNTUK MULAI</h2>
-            
-            <div class="bg-white p-2 rounded-xl border-2 border-slate-100 mb-6">
-                <div id="qrcode"></div>
-            </div>
+        <div id="status-badge" class="px-5 py-2 rounded-lg bg-white border border-slate-200 shadow-sm font-bold text-slate-500 text-sm tracking-wide">
+            MENUNGGU DIMULAI
+        </div>
+    </div>
 
-            <div class="text-center">
-                <p class="text-slate-400 text-xs font-bold uppercase mb-1">Atau akses via browser:</p>
-                <p class="text-3xl font-bold text-teal-600 tracking-wide font-mono-digital selection:bg-teal-100">
-                    uprak.abbs.click
-                </p>
+    <main class="flex-1 w-full max-w-[95%] mx-auto grid grid-cols-12 gap-8 items-center pb-12">
+        
+        <div class="col-span-4 flex flex-col items-center justify-center h-full">
+            <div class="bg-white p-8 rounded-[2rem] shadow-2xl border border-slate-200 w-full max-w-md text-center transform hover:scale-[1.02] transition duration-500">
+                
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Scan Masuk</p>
+                
+                <div class="bg-white p-1 inline-block">
+                    <div id="qrcode" class="opacity-90"></div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-slate-100">
+                    <p class="text-slate-400 text-xs font-bold mb-1 uppercase">Akses Browser</p>
+                    <p class="text-3xl font-extrabold text-teal-700 tracking-tight">uprak.abbs.click</p>
+                </div>
             </div>
         </div>
 
-        <div class="flex flex-col items-center justify-center w-full md:w-2/3">
-            <h2 class="text-slate-400 uppercase text-sm font-bold tracking-[0.3em] mb-2">SISA WAKTU</h2>
+        <div class="col-span-8 flex flex-col items-center justify-center h-full relative">
             
-            <div id="timer-display" class="font-mono-digital text-[12rem] leading-none font-bold text-slate-800 tracking-tighter tabular-nums transition-colors duration-300">
+            <h2 id="timer-label" class="text-slate-400 font-bold text-lg uppercase tracking-[0.5em] mb-4">Waktu Pengerjaan</h2>
+            
+            <div id="timer-display" class="font-mono-nums text-[16vw] leading-none font-bold text-slate-900 tracking-tighter tabular-nums drop-shadow-xl">
                 40:00
             </div>
 
-            <div class="w-full max-w-3xl h-6 bg-slate-200 rounded-full mt-6 overflow-hidden border border-slate-300">
-                <div id="progress-bar" class="h-full bg-teal-500 w-full transition-all duration-1000 ease-linear shadow-lg"></div>
+            <div class="w-full max-w-4xl mt-10">
+                <div class="h-4 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-slate-800 w-full transition-all duration-1000 ease-linear"></div>
+                </div>
             </div>
 
-            <div class="mt-16 flex gap-3 opacity-10 hover:opacity-100 transition-opacity duration-300 bg-white px-6 py-3 rounded-2xl shadow-xl border border-slate-100">
-                <button onclick="startTimer()" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow text-sm">▶ MULAI</button>
-                <button onclick="pauseTimer()" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold shadow text-sm">⏸ PAUSE</button>
-                <button onclick="resetTimer()" class="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg font-bold shadow text-sm">⏹ RESET</button>
-                <div class="w-px bg-slate-300 mx-2"></div>
-                <button onclick="testSound()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg font-bold text-sm">🔊 Tes Suara</button>
+            <div class="absolute bottom-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pb-4">
+                <div class="bg-white/90 backdrop-blur border border-slate-200 px-2 py-2 rounded-2xl shadow-xl flex gap-2">
+                    <button onclick="toggleFullscreen()" class="p-3 hover:bg-slate-100 rounded-xl text-slate-600" title="Fullscreen">⛶</button>
+                    <div class="w-px bg-slate-300 my-2"></div>
+                    <button onclick="startTimer()" class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold">▶ Mulai</button>
+                    <button onclick="pauseTimer()" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold">⏸ Jeda</button>
+                    <button onclick="resetTimer()" class="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl font-bold">⏹ Reset</button>
+                    <div class="w-px bg-slate-300 my-2"></div>
+                    <button onclick="testSound()" class="px-4 py-2 hover:bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">🔔 Cek Suara</button>
+                </div>
             </div>
+
         </div>
-
     </main>
 
     <script>
@@ -79,32 +92,33 @@
         const EXAM_URL = "https://uprak.abbs.click";
         const DURATION_MINUTES = 40;
         
-        // --- AUDIO CDN (URL STABIL) ---
-        // Peringatan 5 Menit (Bunyi Ting)
-        const SOUND_WARNING = new Audio("https://github.com/maykbrito/libs/blob/main/sounds/notification.mp3?raw=true");
-        // Waktu Habis (Bunyi Alarm)
-        const SOUND_FINISH = new Audio("https://github.com/maykbrito/libs/blob/main/sounds/alert.mp3?raw=true");
+        // --- AUDIO SOUNDS (CDN STABIL) ---
+        // Bunyi notifikasi halus untuk 5 menit
+        const SOUND_WARNING = new Audio("https://cdn.pixabay.com/audio/2022/03/24/audio_777b7f5831.mp3"); 
+        // Bunyi alarm tegas untuk waktu habis
+        const SOUND_FINISH = new Audio("https://cdn.pixabay.com/audio/2021/08/04/audio_0625c153e1.mp3");
 
         let totalSeconds = DURATION_MINUTES * 60;
         let timeLeft = totalSeconds;
         let timerId = null;
         let isRunning = false;
 
-        // --- 1. GENERATE QR CODE ---
+        // --- 1. QR CODE GENERATOR (HITAM) ---
         new QRCode(document.getElementById("qrcode"), {
             text: EXAM_URL,
-            width: 200,
-            height: 200,
-            colorDark : "#0f766e", // Teal-700
+            width: 250,
+            height: 250,
+            colorDark : "#000000", // Hitam Pekat
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
         });
 
-        // --- 2. TIMER LOGIC ---
+        // --- 2. LOGIC TIMER ---
         const display = document.getElementById('timer-display');
         const progressBar = document.getElementById('progress-bar');
         const statusBadge = document.getElementById('status-badge');
-        const bodyBg = document.getElementById('body-bg');
+        const body = document.getElementById('main-body');
+        const label = document.getElementById('timer-label');
 
         function updateDisplay() {
             const m = Math.floor(timeLeft / 60);
@@ -114,60 +128,91 @@
             const percent = (timeLeft / totalSeconds) * 100;
             progressBar.style.width = `${percent}%`;
 
-            // Logic Warna & Status
+            // --- STATE MANAGEMENT ---
             if (timeLeft <= 0) {
-                // WAKTU HABIS
-                display.className = "font-mono-digital text-[12rem] leading-none font-bold tracking-tighter tabular-nums animate-urgent text-red-600";
-                progressBar.className = "h-full bg-red-600 w-full";
-                statusBadge.innerText = "WAKTU HABIS";
-                statusBadge.className = "px-6 py-2 rounded-full bg-red-600 text-white font-bold text-sm animate-pulse";
-                bodyBg.classList.add('animate-bg-urgent');
+                // STATE: WAKTU HABIS
+                setPanicMode(true);
+                statusBadge.innerText = "WAKTU HABIS / SELESAI";
+                statusBadge.className = "px-5 py-2 rounded-lg bg-red-600 text-white font-bold text-sm tracking-wide animate-pulse";
             } 
             else if (timeLeft <= 300) { // 5 Menit
-                // PERINGATAN
-                display.classList.add('text-orange-500');
-                display.classList.remove('text-slate-800');
-                progressBar.className = "h-full bg-orange-500 w-full shadow-lg";
-                statusBadge.innerText = "PERINGATAN: < 5 MENIT";
-                statusBadge.className = "px-6 py-2 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-bold text-sm animate-pulse";
-                bodyBg.classList.remove('animate-bg-urgent');
+                // STATE: PERINGATAN (WARNING)
+                setPanicMode(false);
+                display.classList.add('text-orange-600');
+                display.classList.remove('text-slate-900');
+                progressBar.className = "h-full bg-orange-500 w-full";
+                
+                statusBadge.innerText = "PERINGATAN: SISA 5 MENIT";
+                statusBadge.className = "px-5 py-2 rounded-lg bg-orange-100 text-orange-700 border border-orange-200 font-bold text-sm tracking-wide animate-pulse";
             } 
             else {
-                // NORMAL
-                display.className = "font-mono-digital text-[12rem] leading-none font-bold text-slate-800 tracking-tighter tabular-nums transition-colors duration-300";
-                progressBar.className = "h-full bg-teal-500 w-full shadow-lg transition-all duration-1000 ease-linear";
-                statusBadge.innerText = "UJIAN BERLANGSUNG";
-                statusBadge.className = "px-6 py-2 rounded-full bg-teal-100 text-teal-800 border border-teal-200 font-bold text-sm";
-                bodyBg.classList.remove('animate-bg-urgent');
+                // STATE: NORMAL
+                setPanicMode(false);
+                display.className = "font-mono-nums text-[16vw] leading-none font-bold text-slate-900 tracking-tighter tabular-nums drop-shadow-xl";
+                progressBar.className = "h-full bg-slate-800 w-full transition-all duration-1000 ease-linear";
+                
+                if(isRunning) {
+                    statusBadge.innerText = "UJIAN SEDANG BERLANGSUNG";
+                    statusBadge.className = "px-5 py-2 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 font-bold text-sm tracking-wide";
+                }
             }
         }
 
+        function setPanicMode(isPanic) {
+            if (isPanic) {
+                body.classList.remove('bg-slate-100', 'text-slate-800');
+                body.classList.add('bg-red-600', 'text-white');
+                display.classList.remove('text-slate-900', 'text-orange-600');
+                display.classList.add('text-white', 'animate-urgent');
+                progressBar.classList.add('bg-white');
+                label.classList.add('text-red-200');
+                label.classList.remove('text-slate-400');
+            } else {
+                body.classList.add('bg-slate-100', 'text-slate-800');
+                body.classList.remove('bg-red-600', 'text-white');
+                display.classList.remove('text-white', 'animate-urgent');
+                label.classList.remove('text-red-200');
+                label.classList.add('text-slate-400');
+            }
+        }
+
+        // --- 3. CONTROLS ---
         function startTimer() {
             if (isRunning) return;
             if (timeLeft <= 0) return;
             
+            // Hack untuk mengaktifkan audio context di browser
+            SOUND_WARNING.play().then(() => {
+                SOUND_WARNING.pause();
+                SOUND_WARNING.currentTime = 0;
+            }).catch(e => {});
+
             isRunning = true;
+            statusBadge.innerText = "UJIAN SEDANG BERLANGSUNG";
+            statusBadge.className = "px-5 py-2 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 font-bold text-sm tracking-wide";
+
             timerId = setInterval(() => {
                 timeLeft--;
                 updateDisplay();
 
-                // AUDIO TRIGGER
-                if (timeLeft === 300) { // Pas sisa 5 menit
-                    SOUND_WARNING.play().catch(e => console.log("Audio error:", e));
+                // PLAY SOUNDS
+                if (timeLeft === 300) { 
+                    SOUND_WARNING.volume = 1.0;
+                    SOUND_WARNING.play(); 
                 }
-                if (timeLeft === 0) { // Pas habis
-                    SOUND_FINISH.play().catch(e => console.log("Audio error:", e));
-                    stopTimer();
+                if (timeLeft === 0) { 
+                    SOUND_FINISH.volume = 1.0;
+                    SOUND_FINISH.play(); 
+                    stopTimer(); 
                 }
             }, 1000);
-            updateDisplay();
         }
 
         function pauseTimer() {
             clearInterval(timerId);
             isRunning = false;
-            statusBadge.innerText = "DIJEDA";
-            statusBadge.className = "px-6 py-2 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200 font-bold text-sm";
+            statusBadge.innerText = "WAKTU DIJEDA (PAUSED)";
+            statusBadge.className = "px-5 py-2 rounded-lg bg-yellow-100 text-yellow-800 border border-yellow-200 font-bold text-sm tracking-wide";
         }
 
         function stopTimer() {
@@ -177,24 +222,23 @@
 
         function resetTimer() {
             stopTimer();
-            // Stop suara jika sedang bunyi
-            SOUND_FINISH.pause(); 
+            SOUND_FINISH.pause();
             SOUND_FINISH.currentTime = 0;
-            
             timeLeft = totalSeconds;
-            bodyBg.classList.remove('animate-bg-urgent');
-            statusBadge.innerText = "MENUNGGU MULAI";
-            statusBadge.className = "px-6 py-2 rounded-full bg-slate-200 text-slate-600 font-bold text-sm border border-slate-300";
+            
+            setPanicMode(false);
+            display.classList.remove('text-orange-600');
+            display.classList.add('text-slate-900');
+            
+            statusBadge.innerText = "MENUNGGU DIMULAI";
+            statusBadge.className = "px-5 py-2 rounded-lg bg-white border border-slate-200 shadow-sm font-bold text-slate-500 text-sm tracking-wide";
             updateDisplay();
         }
 
         function testSound() {
-            // Tes bunyi ting
             SOUND_WARNING.play();
-            // Tes bunyi alarm setelah 1 detik
             setTimeout(() => {
                 SOUND_FINISH.play();
-                // Matikan alarm setelah 2 detik tes
                 setTimeout(() => {
                     SOUND_FINISH.pause();
                     SOUND_FINISH.currentTime = 0;
@@ -202,7 +246,19 @@
             }, 1000);
         }
 
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Init
         updateDisplay();
+
     </script>
 </body>
 </html>
