@@ -66,7 +66,7 @@
                 <div id="pre-table-hooke" class="hidden mb-4 grid grid-cols-2 gap-4">
                     <div>
                         <label class="text-xs text-gray-500">Gravitasi (m/s²)</label>
-                        <input type="text" name="gravitasi_ref" value="9.8" class="w-full p-2 bg-slate-50 border rounded text-center font-bold">
+                        <input type="text" inputmode="decimal" name="gravitasi_ref" value="9.8" class="w-full p-2 bg-slate-50 border rounded text-center font-bold">
                     </div>
                     <div>
                         <label class="text-xs text-gray-500">Panjang Awal (m)</label>
@@ -122,8 +122,21 @@
         // ==========================================
         // CONFIGURATION
         // ==========================================
-        // GANTI INI DENGAN URL DEPLOYMENT TERBARU ANDA (YANG 4 ASPEK)
+        // URL SCRIPT ANDA
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxH7I_95q9NidRY2rhmqTV2RuExiCBbdxBVAeSp7A_Xg_3XrlKlBdjcSuUcBE6YED7q/exec'; 
+
+        // --- GLOBAL INTERVENTION FOR IPHONE (NEW) ---
+        // Script ini otomatis mengubah Koma jadi Titik di semua input angka
+        document.addEventListener('input', function (e) {
+            // Cek apakah element yang diketik adalah input tipe desimal
+            if (e.target.matches('input[inputmode="decimal"]')) {
+                let val = e.target.value;
+                // Jika ada koma, ganti paksa jadi titik
+                if (val.includes(',')) {
+                    e.target.value = val.replace(/,/g, '.');
+                }
+            }
+        });
 
         const CONFIG = {
             hooke: {
@@ -155,9 +168,7 @@
         let currentTopic = '';
         let studentData = {};
 
-        // ==========================================
-        // LOGIN SYSTEM
-        // ==========================================
+        // --- LOGIN SYSTEM ---
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             toggleLoading(true, 'Sedang Login...');
@@ -173,7 +184,6 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    // Paksa NIS jadi string untuk konsistensi penyimpanan
                     studentData = { nis: String(nis), nama: result.nama, kelas: result.kelas };
                     setupExam(result.topik);
                 } else {
@@ -207,7 +217,8 @@
             for(let i=1; i<=5; i++) {
                 let row = `<tr><td class="p-2 border text-center font-bold bg-gray-50">${i}</td>`;
                 for(let c=0; c < conf.cols-1; c++) { 
-                    row += `<td class="border p-0"><input type="text" inputmode="decimal" class="w-full p-2 text-center outline-none focus:bg-teal-50" oninput="fixDec(this)"></td>`;
+                    // FIX: type="text" + inputmode="decimal" adalah kombinasi terbaik untuk iPhone
+                    row += `<td class="border p-0"><input type="text" inputmode="decimal" class="w-full p-2 text-center outline-none focus:bg-teal-50"></td>`;
                 }
                 row += `</tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
@@ -224,13 +235,10 @@
             document.getElementById('avg-label').innerText = conf.avgLabel;
             if(topic === 'hooke') document.getElementById('pre-table-hooke').classList.remove('hidden');
 
-            // Coba Load Draft (Akan mengisi alat default jika tidak ada draft)
             loadDraft(); 
         }
 
-        // ==========================================
-        // STORAGE & SAVE LOGIC (UPDATED)
-        // ==========================================
+        // --- STORAGE & SAVE LOGIC ---
         function saveDraft() {
             const btn = document.getElementById('btn-save');
             const originalText = btn.innerText;
@@ -240,7 +248,6 @@
             const storageData = { 
                 topic: currentTopic, 
                 data: data, 
-                // Simpan NIS sebagai penanda pemilik
                 ownerNIS: studentData.nis 
             };
             
@@ -255,7 +262,6 @@
         function loadDraft() {
             const raw = localStorage.getItem('uprak_fisika_v2');
             
-            // Jika tidak ada draft, isi alat default
             if(!raw) {
                 addTool('Statif & Klem');
                 addTool('Penggaris');
@@ -264,9 +270,6 @@
 
             try {
                 const saved = JSON.parse(raw);
-                
-                // VALIDASI PEMILIK & TOPIK
-                // Jangan load jika beda siswa atau beda topik
                 if (saved.ownerNIS !== studentData.nis || saved.topic !== currentTopic) {
                     addTool('Statif & Klem');
                     addTool('Penggaris');
@@ -274,53 +277,43 @@
                 }
 
                 if(!confirm(`Ditemukan data tersimpan untuk ${studentData.nama}. Lanjutkan pengerjaan terakhir?`)) {
-                    // Jika siswa pilih Cancel, reset alat default
                     addTool('Statif & Klem');
                     addTool('Penggaris');
                     return; 
                 }
 
-                // --- RESTORE DATA SECARA LENGKAP ---
                 const d = saved.data;
-
-                // 1. Text Dasar
                 safeVal('[name="tujuan"]', d.tujuan);
                 safeVal('[name="teori"]', d.teori);
                 safeVal('[name="kesimpulan"]', d.kesimpulan);
 
-                // 2. Variabel Analisis
                 if(d.analisis) {
                     safeVal('[name="var_bebas"]', d.analisis.bebas);
                     safeVal('[name="var_terikat"]', d.analisis.terikat);
                     safeVal('[name="var_kontrol"]', d.analisis.kontrol);
                 }
 
-                // 3. Extra Inputs
                 if(d.extra) {
                     safeVal('[name="gravitasi_ref"]', d.extra.gravitasi_ref);
                     safeVal('[name="panjang_awal"]', d.extra.panjang_awal);
                     safeVal('[name="rata_rata"]', d.extra.rata_rata);
                 }
 
-                // 4. Alat & Bahan (Reset list dulu)
                 document.getElementById('tools-list').innerHTML = '';
                 if (d.tools && d.tools.length > 0) {
                     d.tools.forEach(t => addTool(t));
                 } else {
-                    addTool('Statif & Klem'); // Fallback
+                    addTool('Statif & Klem'); 
                 }
 
-                // 5. Tabel Data (Looping input tabel)
                 const inputs = document.querySelectorAll('#table-body input');
                 if(d.table) {
-                    // Flatten data tabel 2D jadi 1D biar mudah di-map ke inputs
                     const flatValues = d.table.flat(); 
                     inputs.forEach((inp, idx) => {
                         if(flatValues[idx] !== undefined) inp.value = flatValues[idx];
                     });
                 }
 
-                // 6. Jawaban Pertanyaan
                 const qAreas = document.querySelectorAll('#questions-list textarea');
                 if(d.analisis && d.analisis.jawaban) {
                     d.analisis.jawaban.forEach((ans, idx) => {
@@ -330,28 +323,21 @@
 
             } catch (e) {
                 console.error("Gagal load draft:", e);
-                addTool('Statif & Klem'); // Fallback error
+                addTool('Statif & Klem');
             }
         }
 
-        // Helper untuk set value aman
         function safeVal(selector, val) {
             const el = document.querySelector(selector);
             if(el && val !== undefined) el.value = val;
         }
 
-        // ==========================================
-        // UTILITIES & SUBMIT
-        // ==========================================
+        // --- UTILITIES & SUBMIT ---
         function addTool(val = '') {
             const div = document.createElement('div');
             div.className = 'flex gap-2';
             div.innerHTML = `<input type="text" value="${val}" class="tool-input flex-1 p-2 bg-slate-50 border rounded text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold px-2">x</button>`;
             document.getElementById('tools-list').appendChild(div);
-        }
-
-        function fixDec(el) {
-            el.value = el.value.replace(/,/g, '.');
         }
 
         function toggleLoading(show, msg) {
@@ -387,13 +373,12 @@
         }
 
         async function submitExam() {
-            // --- PESAN PERINGATAN BARU ---
             const message = "PERHATIAN:\n\n" +
                             "Apakah Anda yakin ingin mengumpulkan?\n" +
                             "Jika Anda sebelumnya sudah mengumpulkan, data lama akan DIHAPUS dan DIGANTI dengan yang ini.\n\n" +
                             "Lanjutkan?";
 
-            if(!confirm(message)) return; // Jika batal, stop.
+            if(!confirm(message)) return;
 
             toggleLoading(true, "Mengirim ke Server...");
             
@@ -411,20 +396,18 @@
                     })
                 });
                 
-                const result = await response.json(); // Baca respon JSON dari server
+                const result = await response.json(); 
 
                 toggleLoading(false);
                 
                 if (result.status === 'success') {
-                    // Pesan sukses sesuai mode (Baru/Update)
                     if(result.mode === 'update') {
                         alert("✅ REVISI BERHASIL! Data lama Anda sudah ditimpa dengan data baru ini.");
                     } else {
                         alert("✅ BERHASIL! Data ujian Anda telah diterima Guru.");
                     }
-                    
-                    localStorage.removeItem('uprak_fisika_v2'); // Hapus draft
-                    location.reload(); // Refresh halaman
+                    localStorage.removeItem('uprak_fisika_v2'); 
+                    location.reload(); 
                 } else {
                     alert("Gagal menyimpan: " + result.message);
                 }
@@ -434,6 +417,6 @@
                 alert("Gagal kirim: " + err);
             }
         }
-        </script>
+    </script>
 </body>
 </html>
