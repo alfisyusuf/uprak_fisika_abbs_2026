@@ -99,13 +99,11 @@
 
     <script>
         // --- KONFIGURASI ---
-        // Pastikan URL ini sesuai dengan Deployment terakhir
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxH7I_95q9NidRY2rhmqTV2RuExiCBbdxBVAeSp7A_Xg_3XrlKlBdjcSuUcBE6YED7q/exec'; 
         
         let allData = [];
         let activeIndex = -1;
 
-        // Login & Ambil Data
         async function fetchData() {
             const pass = document.getElementById('admin-pass').value;
             if(!pass) return alert("Masukkan password guru!");
@@ -135,7 +133,6 @@
             btn.innerText = originalText;
         }
 
-        // Render Tabel Dashboard
         function renderTable() {
             const tbody = document.getElementById('submission-list');
             tbody.innerHTML = allData.map((d, i) => {
@@ -145,7 +142,6 @@
                     : `<span class="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100">Belum Dinilai</span>`;
                 
                 const totalScore = hasGrade ? `<span class="font-bold text-lg text-slate-800">${d.total}</span>` : `<span class="text-gray-300">-</span>`;
-
                 const dateObj = new Date(d.waktu);
                 const timeStr = dateObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) + ' ' + dateObj.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
 
@@ -166,14 +162,12 @@
             }).join('');
         }
 
-        // Buka Laporan Detail
         function openReport(index) {
             activeIndex = index;
             const d = allData[index];
             let payload;
             try { payload = JSON.parse(d.json); } catch(e) { return alert("Data JSON Rusak"); }
 
-            // 1. Render Konten Laporan
             const container = document.getElementById('report-content');
             
             // Header
@@ -188,7 +182,7 @@
                 </div>
             `;
 
-            // Bagian A: Pendahuluan
+            // A. Pendahuluan
             html += card("📝 Pendahuluan", `
                 <div class="grid gap-4">
                     <div><span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tujuan</span>
@@ -198,7 +192,7 @@
                 </div>
             `);
 
-            // Bagian B: Data & Validasi
+            // B. Data & Validasi
             let tableHtml = (d.topik === 'hooke') ? generateHookeTable(payload.table, payload.extra) : generatePendulumTable(payload.table);
             html += card("📊 Data Pengamatan & Validasi", `
                 ${tableHtml}
@@ -208,10 +202,8 @@
                 </div>
             `);
 
-            // Bagian C: Analisis (REVISI: Ditambah Variabel)
+            // C. Analisis
             let analisisContent = '';
-            
-            // 1. Variabel (NEW)
             if(payload.analisis) {
                 analisisContent += `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -230,8 +222,6 @@
                     </div>
                 `;
             }
-
-            // 2. Jawaban Pertanyaan
             if(payload.analisis && payload.analisis.jawaban) {
                 analisisContent += payload.analisis.jawaban.map((a,i) => `
                     <div class="mb-3 last:mb-0">
@@ -241,12 +231,11 @@
             }
             html += card("🧠 Analisis Data", analisisContent);
 
-            // Bagian D: Kesimpulan
+            // D. Kesimpulan
             html += card("🏁 Kesimpulan", `<p class="text-sm text-slate-700 leading-relaxed">${payload.kesimpulan || '-'}</p>`);
 
             container.innerHTML = html;
 
-            // Form Nilai
             document.getElementById('grade-1').value = d.a1;
             document.getElementById('grade-2').value = d.a2;
             document.getElementById('grade-3').value = d.a3;
@@ -260,7 +249,6 @@
             document.getElementById('grading-modal').classList.add('hidden');
         }
 
-        // Submit Grade
         async function submitGrade() {
             const n1 = document.getElementById('grade-1').value;
             const n2 = document.getElementById('grade-2').value;
@@ -311,18 +299,33 @@
             btn.innerText = "SIMPAN NILAI";
         }
 
-        // Helper Logic Fisika
         function check(val, ref) { if(!val || !ref) return ''; const diff = Math.abs((val-ref)/ref); return diff > 0.05 ? 'text-red-500 font-bold underline decoration-red-300 decoration-2' : 'text-green-600 font-bold'; }
         
         function generateHookeTable(rows, extra) {
-            const g = parseFloat(extra.gravitasi_ref) || 9.8; const L0 = parseFloat(extra.panjang_awal) || 0;
+            const g = parseFloat(extra.gravitasi_ref) || 9.8; 
+            const L0 = parseFloat(extra.panjang_awal) || 0;
+            
+            // --- UPDATE: Menampilkan Input Awal Siswa (Gravitasi & Panjang) di Atas Tabel ---
+            let headerInfo = `
+                <div class="flex flex-wrap gap-4 mb-3">
+                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100 flex-1 min-w-[120px]">
+                        <span class="text-[10px] font-bold text-blue-500 uppercase block">Gravitasi (g)</span>
+                        <span class="font-mono font-bold text-slate-700 text-lg">${g}</span> <span class="text-xs text-gray-500">m/s²</span>
+                    </div>
+                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100 flex-1 min-w-[120px]">
+                        <span class="text-[10px] font-bold text-blue-500 uppercase block">Panjang Awal (L0)</span>
+                        <span class="font-mono font-bold text-slate-700 text-lg">${L0}</span> <span class="text-xs text-gray-500">m</span>
+                    </div>
+                </div>
+            `;
+
             let h = `<div class="overflow-x-auto border rounded-lg"><table class="w-full text-xs text-left"><tr class="bg-gray-100 text-gray-500 border-b"><th class="p-2">m (kg)</th><th class="p-2">F (N)</th><th class="p-2">Lt (m)</th><th class="p-2">∆x (m)</th><th class="p-2">k (N/m)</th></tr>`;
             rows.forEach(r => {
                 const m=parseFloat(r[0]), F=parseFloat(r[1]), Lt=parseFloat(r[2]), dx=parseFloat(r[3]), k=parseFloat(r[4]);
                 const Fr=m*g, dxr=Lt-L0, kr=(dxr!==0)?Fr/dxr:0;
                 h+=`<tr class="border-b last:border-0 hover:bg-slate-50"><td class="p-2 font-mono">${m}</td><td class="p-2 ${check(F,Fr)}">${F}</td><td class="p-2 text-gray-400">${Lt}</td><td class="p-2 ${check(dx,dxr)}">${dx}</td><td class="p-2 ${check(k,kr)}">${k}</td></tr>`;
             });
-            return h+`</table></div><div class="text-[10px] text-gray-400 mt-1 text-right">Referensi: g=${g}, L0=${L0}</div>`;
+            return headerInfo + h + `</table></div>`;
         }
 
         function generatePendulumTable(rows) {
