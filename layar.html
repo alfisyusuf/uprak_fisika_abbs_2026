@@ -147,23 +147,24 @@
             }
         }
 
-        // 3. SOUND LOGIC (PAKAI LIBRARY BARU)
-        function playWarningSound() {
-            // Suara 'Attention' (Sedang) untuk 5 menit
-            SimpleNotificationSounds.playAttention(); 
-        }
-
-        function playFinishSound() {
-            // Suara 'Alert' (Panjang/SOS) untuk Waktu Habis - Urgent!
-            SimpleNotificationSounds.playAlert('long'); 
+        // --- 3. REPEATED SOUND LOGIC (NEW) ---
+        function playRepeatedSound(type, count, intervalMs) {
+            let played = 0;
+            const interval = setInterval(() => {
+                if(type === 'attention') SimpleNotificationSounds.playAttention();
+                if(type === 'alert') SimpleNotificationSounds.playAlert('long');
+                if(type === 'beep') SimpleNotificationSounds.playSuccess('short');
+                
+                played++;
+                if (played >= count) clearInterval(interval);
+            }, intervalMs);
         }
 
         function startTimer() {
             if (isRunning) return;
             if (timeLeft <= 0) return;
             
-            // Pancing Audio Context (agar browser mengizinkan suara)
-            // Kita play suara "success" pelan sekali sebagai pancingan
+            // Pancing Audio
             SimpleNotificationSounds.playSuccess('short');
 
             isRunning = true;
@@ -174,10 +175,19 @@
                 timeLeft--;
                 updateDisplay();
 
-                // TRIGGER SUARA DARI LIBRARY
-                if (timeLeft === 300) playWarningSound(); // 5 Menit
+                // --- AUDIO TRIGGERS ---
+                // 10 Menit (600 detik) -> Ulang 5 kali, interval 1 detik
+                if (timeLeft === 600) playRepeatedSound('attention', 5, 1000);
+
+                // 5 Menit (300 detik) -> Ulang 7 kali, interval 0.8 detik
+                if (timeLeft === 300) playRepeatedSound('attention', 7, 800);
+
+                // 10 Detik Terakhir (Hitung Mundur) -> Bunyi beep setiap detik
+                if (timeLeft <= 10 && timeLeft > 0) SimpleNotificationSounds.playSuccess('short');
+
+                // Waktu Habis (0 detik) -> Alarm SOS berulang 10 kali
                 if (timeLeft === 0) { 
-                    playFinishSound(); // Selesai
+                    playRepeatedSound('alert', 10, 1200); // Interval agak panjang biar suara alarm tuntas
                     stopTimer(); 
                 }
             }, 1000);
@@ -207,9 +217,12 @@
         }
 
         function testSound() {
-            // Demo kedua suara
-            playWarningSound();
-            setTimeout(() => playFinishSound(), 1000);
+            // Demo sequence cepat
+            alert("Memulai Demo Suara (Sequence 5 Detik)");
+            playRepeatedSound('attention', 3, 500); // Cek Attention
+            setTimeout(() => {
+                playRepeatedSound('alert', 2, 1200); // Cek Alarm
+            }, 2000);
         }
 
         function toggleFullscreen() {
