@@ -28,6 +28,15 @@
         </div>
     </div>
 
+    <div id="camera-container" class="hidden fixed bottom-24 right-4 w-28 h-36 bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-slate-700 z-50 pointer-events-none">
+        <video id="webcam-preview" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100 opacity-90"></video>
+        <div class="absolute top-2 left-0 right-0 flex justify-center">
+            <span class="text-[9px] bg-red-600/90 text-white px-2 py-0.5 rounded-full animate-pulse font-bold flex items-center gap-1 shadow-sm border border-red-500">
+                <span class="w-1.5 h-1.5 bg-white rounded-full"></span> REC
+            </span>
+        </div>
+    </div>
+
     <div id="app-screen" class="hidden max-w-2xl mx-auto p-4">
         <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-4 border-teal-500">
             <div>
@@ -125,13 +134,10 @@
         // URL SCRIPT ANDA
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxH7I_95q9NidRY2rhmqTV2RuExiCBbdxBVAeSp7A_Xg_3XrlKlBdjcSuUcBE6YED7q/exec'; 
 
-        // --- GLOBAL INTERVENTION FOR IPHONE (NEW) ---
-        // Script ini otomatis mengubah Koma jadi Titik di semua input angka
+        // --- GLOBAL INTERVENTION FOR IPHONE ---
         document.addEventListener('input', function (e) {
-            // Cek apakah element yang diketik adalah input tipe desimal
             if (e.target.matches('input[inputmode="decimal"]')) {
                 let val = e.target.value;
-                // Jika ada koma, ganti paksa jadi titik
                 if (val.includes(',')) {
                     e.target.value = val.replace(/,/g, '.');
                 }
@@ -168,6 +174,27 @@
         let currentTopic = '';
         let studentData = {};
 
+        // --- SISTEM KAMERA PENGAWAS ---
+        async function startCamera() {
+            try {
+                // Meminta akses kamera depan
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" },
+                    audio: false
+                });
+                
+                const videoElement = document.getElementById('webcam-preview');
+                videoElement.srcObject = stream;
+                
+                // Menampilkan kotak kamera jika diizinkan
+                document.getElementById('camera-container').classList.remove('hidden');
+                return true; // Berhasil
+            } catch (err) {
+                console.warn("Akses kamera ditolak atau tidak tersedia:", err);
+                return false; // Gagal / Ditolak
+            }
+        }
+
         // --- LOGIN SYSTEM ---
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -185,18 +212,33 @@
 
                 if (result.status === 'success') {
                     studentData = { nis: String(nis), nama: result.nama, kelas: result.kelas };
-                    setupExam(result.topik);
+                    
+                    // LOGIN BERHASIL -> Minta Izin Kamera Sebelum Masuk Soal
+                    toggleLoading(true, 'Meminta Akses Kamera...');
+                    const isCameraGranted = await startCamera();
+                    
+                    if (isCameraGranted) {
+                        // Jika diizinkan, setup ujian
+                        setupExam(result.topik);
+                    } else {
+                        // Jika diblokir, tetap di layar login dan beri peringatan
+                        toggleLoading(false);
+                        alert("⚠️ AKSES DITOLAK!\n\nAnda WAJIB mengizinkan akses kamera untuk mengikuti ujian praktik ini. Silakan muat ulang (refresh) halaman ini, login kembali, dan pilih 'Allow' atau 'Izinkan' saat pop-up kamera muncul.");
+                    }
                 } else {
+                    toggleLoading(false);
                     alert(result.message);
                 }
             } catch (err) {
+                toggleLoading(false);
                 alert("Gagal koneksi. Periksa internet atau URL Script.");
             }
-            toggleLoading(false);
         });
 
         function setupExam(topic) {
             currentTopic = topic;
+            
+            // Sembunyikan login, tampilkan aplikasi
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.remove('hidden');
             document.getElementById('fab-container').classList.remove('hidden');
@@ -217,7 +259,6 @@
             for(let i=1; i<=5; i++) {
                 let row = `<tr><td class="p-2 border text-center font-bold bg-gray-50">${i}</td>`;
                 for(let c=0; c < conf.cols-1; c++) { 
-                    // FIX: type="text" + inputmode="decimal" adalah kombinasi terbaik untuk iPhone
                     row += `<td class="border p-0"><input type="text" inputmode="decimal" class="w-full p-2 text-center outline-none focus:bg-teal-50"></td>`;
                 }
                 row += `</tr>`;
@@ -236,6 +277,7 @@
             if(topic === 'hooke') document.getElementById('pre-table-hooke').classList.remove('hidden');
 
             loadDraft(); 
+            toggleLoading(false); // Matikan loading screen terakhir
         }
 
         // --- STORAGE & SAVE LOGIC ---
@@ -407,6 +449,13 @@
                         alert("✅ BERHASIL! Data ujian Anda telah diterima Guru.");
                     }
                     localStorage.removeItem('uprak_fisika_v2'); 
+                    
+                    // Matikan kamera sebelum reload agar lampu kamera di HP siswa mati
+                    const videoEl = document.getElementById('webcam-preview');
+                    if (videoEl.srcObject) {
+                        videoEl.srcObject.getTracks().forEach(track => track.stop());
+                    }
+
                     location.reload(); 
                 } else {
                     alert("Gagal menyimpan: " + result.message);
